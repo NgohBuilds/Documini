@@ -5,18 +5,20 @@ from typing import Annotated
 
 app = FastAPI(title= "DocuMini", description="Gestion simple des métadonnées de documents")
 
-docs = [
-    {"id" : 1 , "title" : "A software crafmanship"  , "category" : "education","description" : "learn how to write clean code" },
-    {"id" : 2 , "title" : "Atomic Habits"  , "category" : "lifestyle","description" : "learn how to get better at organising" },
-    {"id" : 3 , "title" : "Demon slayer"  , "category" : "manga","description" : "a manga about chasing demons" },
-]
-
-class document(BaseModel):
+class Document(BaseModel):
     id : int = Field(gt=0)
     title : str = Field (min_length=3)
     category : str = Field(min_length=3)
     description : str
-    
+
+docs = [
+
+    {"id" : 1 , "title" : "A software crafmanship"  , "category" : "education","description" : "learn how to write clean code"},
+    {"id" : 2 , "title" : "Atomic Habits"  , "category" : "lifestyle","description" : "learn how to get better at organising" },
+    {"id" : 3 , "title" : "Demon slayer"  , "category" : "manga","description" : "a manga about chasing demons" },
+]
+
+
 
 @app.get("/document/about")
 async def get_description():
@@ -28,28 +30,22 @@ async def get_description():
 }
 
 
-@app.get("/documents")
-async def get_documents(category : list[str] = Query(default= None )):
+@app.get("/documents", response_model= list[Document])
+async def get_documents(category : list[str] | None = Query(default= None )):
 
-    if not category is None:
-        document_filtered_by_category = list(filter(lambda doc : doc["category"] in category , docs))
+    if  category is not None:
+        return [doc for doc in docs if doc["category"] in category]
 
-        return document_filtered_by_category
-
-    return {"Documents" : docs}
+    return docs
   
 
-@app.get("/documents/{document_id}", summary="Retrieve a specific document", response_model = document)
+@app.get("/documents/{document_id}", summary="Retrieve a specific document", response_model = Document)
 async def get_document(document_id : Annotated[int, Path(gt = 0)]):
 
-    is_exists = any(doc["id"] == document_id for doc in docs )
+    doc = next((doc for doc in docs if doc["id"] == document_id)  , None)
 
-    if not is_exists :
+    if doc is None :
         raise HTTPException(status_code= status.HTTP_404_NOT_FOUND, detail="Aucun doc avec cet ID")
 
-    for doc in docs :
-        if doc["id"] == document_id:
-            trouve = doc
-
-    return trouve
+    return doc
         
