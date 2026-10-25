@@ -3,13 +3,22 @@ from pydantic import BaseModel, Field
 from typing import Annotated
 
 
-app = FastAPI(title= "DocuMini", description="Gestion simple des métadonnées de documents")
+app = FastAPI(
+    title= "DocuMini",
+    description="Gestion simple des métadonnées de documents"
+    )
 
 class Document(BaseModel):
     id : int = Field(gt=0)
     title : str = Field (min_length=3)
     category : str = Field(min_length=3)
-    description : str
+    description : str | None = None
+
+class DocumentCreate(BaseModel):
+    title : str = Field(min_length=3)
+    category : str = Field(min_length = 3)
+    description : str | None = None
+
 
 docs = [
 
