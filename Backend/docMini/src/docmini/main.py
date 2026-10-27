@@ -1,7 +1,7 @@
 from fastapi import FastAPI,status, HTTPException, Path, Query
 from pydantic import BaseModel, Field
 from typing import Annotated
-import uuid
+
 
 
 app = FastAPI(
@@ -83,3 +83,14 @@ def update_document(document_id : Annotated[int, Path(gt=0)], document_update : 
     
 
     return new_document
+
+@app.delete('/documents/{document_id}', status_code= status.HTTP_204_NO_CONTENT)
+def delete_document(document_id : Annotated[int, Path(gt=0)]):
+
+    doc_to_delete = next((doc for doc in docs if doc['id'] == document_id ), None)
+
+    if doc_to_delete is None :
+        raise HTTPException(status_code= status.HTTP_404_NOT_FOUND, detail= "There's No Document with this ID")
+
+    docs.remove(doc_to_delete)
+    
