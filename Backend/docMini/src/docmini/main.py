@@ -1,6 +1,7 @@
 from fastapi import FastAPI,status, HTTPException, Path, Query
 from pydantic import BaseModel, Field
 from typing import Annotated
+import uuid
 
 
 app = FastAPI(
@@ -57,4 +58,14 @@ async def get_document(document_id : Annotated[int, Path(gt = 0)]):
         raise HTTPException(status_code= status.HTTP_404_NOT_FOUND, detail="Aucun doc avec cet ID")
 
     return doc
+
+@app.post('/documents' , response_model = Document, status_code= status.HTTP_201_CREATED)
+def create_document(document : DocumentCreate):
+
+    id_document = max((doc["id"] for doc in docs ), default= 1) + 1
+    document_created =  {"id": id_document, **document.model_dump()} 
+
+    docs.append(document_created)
+
+    return document_created
         
