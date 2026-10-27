@@ -68,4 +68,18 @@ def create_document(document : DocumentCreate):
     docs.append(document_created)
 
     return document_created
-        
+
+@app.put('/documents/{document_id}', response_model= Document)
+def update_document(document_id : Annotated[int, Path(gt=0)], document_update : DocumentCreate):
+
+    doc_index = next((index for index, doc in enumerate(docs) if doc['id'] == document_id ), None)
+
+    if doc_index is None :
+        raise HTTPException(status_code= status.HTTP_404_NOT_FOUND, detail= "There's No Document with this ID")
+
+    new_document = {"id" : document_id , **document_update.model_dump()}
+
+    docs[doc_index] = new_document
+    
+
+    return new_document
