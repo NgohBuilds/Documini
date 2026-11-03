@@ -1,7 +1,10 @@
-from fastapi import FastAPI,status, HTTPException, Path, Query
-from pydantic import BaseModel, Field
+from fastapi import FastAPI,status, HTTPException, Path, Query, Depends
 from typing import Annotated
-
+from sqlalchemy.orm import Session
+from sqlalchemy.exc import SQLAlchemyError
+from docmini.database import get_db
+from docmini.schemas import Document, DocumentCreate, DocumentUpdate
+from .crud import create_document, update_document, delete_document, get_document_by_id, get_documents
 
 
 app = FastAPI(
@@ -9,88 +12,68 @@ app = FastAPI(
     description="Gestion simple des métadonnées de documents"
     )
 
-class Document(BaseModel):
-    id : int = Field(gt=0)
-    title : str = Field (min_length=3)
-    category : str = Field(min_length=3)
-    description : str | None = None
+@app.get("/documents" ,  response_model= list[Document], tags=["GET Request"])
+def get_documents_route(categories : list[str] | None = Query(default= None ) , db : Session = Depends(get_db)):
 
-class DocumentCreate(BaseModel):
-    title : str = Field(min_length=3)
-    category : str = Field(min_length = 3)
-    description : str | None = None
+    try:
+        documents = get_documents(db, categories)
 
+    except SQLAlchemyError:
+        raise HTTPException(status_code= status.HTTP_500_INTERNAL_SERVER_ERROR, detail= "Operations failed")
 
-docs = [
-
-    {"id" : 1 , "title" : "A software crafmanship"  , "category" : "education","description" : "learn how to write clean code"},
-    {"id" : 2 , "title" : "Atomic Habits"  , "category" : "lifestyle","description" : "learn how to get better at organising" },
-    {"id" : 3 , "title" : "Demon slayer"  , "category" : "manga","description" : "a manga about chasing demons" },
-]
-
-
-
-@app.get("/document/about")
-async def get_description():
-
-    return {
-  "application": "DocuMini",
-  "description": "Gestion simple des métadonnées de documents",
-  "version": "0.1.0"
-}
-
-
-@app.get("/documents", response_model= list[Document])
-async def get_documents(category : list[str] | None = Query(default= None )):
-
-    if  category is not None:
-        return [doc for doc in docs if doc["category"] in category]
-
-    return docs
+    return documents
   
 
-@app.get("/documents/{document_id}", summary="Retrieve a specific document", response_model = Document)
-async def get_document(document_id : Annotated[int, Path(gt = 0)]):
+@app.get("/documents/{document_id}", response_model = Document, tags=["GET Request"])
+def get_document(document_id : Annotated[int, Path(gt = 0)], db : Session = Depends(get_db)):
 
-    doc = next((doc for doc in docs if doc["id"] == document_id)  , None)
+    document = get_document_by_id(db, document_id)
 
-    if doc is None :
-        raise HTTPException(status_code= status.HTTP_404_NOT_FOUND, detail="Aucun doc avec cet ID")
+    if document is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND , detail="document not found")
 
-    return doc
+    return document
+
 
 @app.post('/documents' , response_model = Document, status_code= status.HTTP_201_CREATED)
-def create_document(document : DocumentCreate):
+def create_document_route(document : DocumentCreate, db : Session = Depends(get_db)):
+    try :
+        document_created = create_document(db, document)
 
-    id_document = max((doc["id"] for doc in docs ), default= 1) + 1
-    document_created =  {"id": id_document, **document.model_dump()} 
-
-    docs.append(document_created)
+    except SQLAlchemyError:
+        raise HTTPException(status_code= status.HTTP_500_INTERNAL_SERVER_ERROR , detail= "Database operation failed.")
 
     return document_created
 
-@app.put('/documents/{document_id}', response_model= Document)
-def update_document(document_id : Annotated[int, Path(gt=0)], document_update : DocumentCreate):
+@app.patch('/documents/{document_id}', response_model= Document, status_code=status.HTTP_200_OK)
+def update_document_route(document_id : Annotated[int, Path(gt=0)], document_update : DocumentUpdate, db : Session = Depends(get_db)):
 
-    doc_index = next((index for index, doc in enumerate(docs) if doc['id'] == document_id ), None)
+    try:
+        updated_document = update_document(db, document_id, document_update)
 
-    if doc_index is None :
-        raise HTTPException(status_code= status.HTTP_404_NOT_FOUND, detail= "There's No Document with this ID")
+    except SQLAlchemyError:
+        raise HTTPException(status_code= status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Databse operation failed")
 
-    new_document = {"id" : document_id , **document_update.model_dump()}
+    if updated_document is None :
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND , detail = "Document Not Found")
 
-    docs[doc_index] = new_document
-    
-
-    return new_document
+    return updated_document
 
 @app.delete('/documents/{document_id}', status_code= status.HTTP_204_NO_CONTENT)
-def delete_document(document_id : Annotated[int, Path(gt=0)]):
+def delete_document_route(document_id : Annotated[int, Path(gt=0)], db : Session = Depends(get_db)):
 
-    doc_to_delete = next((doc for doc in docs if doc['id'] == document_id ), None)
+    try :
+       deleted = delete_document(db, document_id)
 
-    if doc_to_delete is None :
-        raise HTTPException(status_code= status.HTTP_404_NOT_FOUND, detail= "There's No Document with this ID")
+    except SQLAlchemyError:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,detail= "Database operation failed")
 
-    docs.remove(doc_to_delete)
+    if deleted is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document Not Found")
+
+    return None
+    
+    
+
+
     
