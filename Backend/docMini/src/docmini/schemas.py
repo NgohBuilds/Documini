@@ -13,3 +13,8 @@ class DocumentCreate(BaseModel):
     title : str = Field(min_length=3)
     category : str = Field(min_length = 3)
     description : str | None = None
+
+class DocumentUpdate(BaseModel):
+    title : str | None = Field(default=None, min_length=3)
+    category : str | None = Field(default= None, min_length = 3)
+    description : str | None = None
