@@ -35,11 +35,7 @@ def get_documents( db: Session , categories : None | list[str]) -> list[Document
     if categories is not None :
         statement = statement.where(DocumentModel.category.in_(categories))
 
-    try:
-        results = db.execute(statement).scalars().all()
-
-    except SQLAlchemyError:
-        raise
+    results = db.execute(statement).scalars().all()
 
     return results
 
@@ -54,7 +50,8 @@ def update_document(db: Session, document_id:int, document: DocumentUpdate) -> N
     new_document_data = document.model_dump(exclude_unset=True)
 
     for k, v in new_document_data.items():
-        setattr(document_orm, k, v)
+        if v is not None :
+            setattr(document_orm, k, v)
 
     try:
         db.commit()
