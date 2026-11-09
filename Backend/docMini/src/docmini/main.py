@@ -2,8 +2,8 @@ from fastapi import FastAPI,status, HTTPException, Path, Query, Depends
 from typing import Annotated
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
-from docmini.database import get_db
-from docmini.schemas import Document, DocumentCreate, DocumentUpdate
+from .database import get_db
+from .schemas import Document, DocumentCreate, DocumentUpdate
 from .crud import create_document, update_document, delete_document, get_document_by_id, get_documents
 
 
@@ -25,7 +25,7 @@ def get_documents_route(categories : list[str] | None = Query(default= None ) , 
   
 
 @app.get("/documents/{document_id}", response_model = Document, tags=["GET Request"])
-def get_document(document_id : Annotated[int, Path(gt = 0)], db : Session = Depends(get_db)):
+def get_document_route(document_id : Annotated[int, Path(gt = 0)], db : Session = Depends(get_db)):
 
     document = get_document_by_id(db, document_id)
 
@@ -52,7 +52,7 @@ def update_document_route(document_id : Annotated[int, Path(gt=0)], document_upd
         updated_document = update_document(db, document_id, document_update)
 
     except SQLAlchemyError:
-        raise HTTPException(status_code= status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Databse operation failed")
+        raise HTTPException(status_code= status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database operation failed")
 
     if updated_document is None :
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND , detail = "Document Not Found")
