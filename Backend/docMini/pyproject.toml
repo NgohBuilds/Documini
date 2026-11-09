@@ -23,3 +23,8 @@ build-backend = "uv_build"
 
 [tool.fastapi]
 entrypoint = "src.docmini.main:app"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+]
