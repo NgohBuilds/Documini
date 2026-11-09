@@ -9,10 +9,41 @@ class Document(BaseModel):
     category : str = Field(min_length=3)
     description : str | None = None
 
+    model_config = {
+         "json_schema_extra": 
+              {
+                   "examples" : 
+                   [
+                        {
+                            "id" : "13",
+                            "title" : "Les Fourberies de Scapin",
+                            "category" : "Théâtre",
+                           " description" :  "Une pièce Théatrale qui raconte sous un ton amusant les aventures de Scapin."  
+                        }
+                   ]
+              }
+             }
+
 class DocumentCreate(BaseModel):
     title : str = Field(min_length=3)
     category : str = Field(min_length = 3)
     description : str | None = None
+
+    model_config = {
+         "json_schema_extra" : {
+              "examples" : [
+                   {
+                        "title" : "Les tribus de Capitoline",
+                        "category" : "drame"
+                   },
+                   {
+                        "title" : "Petites gouttes de champs pour creer l'Homme",
+                        "category" : "Poesie",
+                        "description" : "Il s'agit d'une oeuvre africaine qui recouvre toutes les meilleurs poesies"
+                   }
+              ]
+         }
+    }
 
 class DocumentUpdate(BaseModel):
     title : str | None = Field(default=None, min_length=3)
